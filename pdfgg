@@ -10,9 +10,7 @@ id=0
 file_created=""
 
 # create /tmp/pdfgg
-
 mkdir -p /tmp/pdfgg
-
 
 while read line; do
     # line trimming
@@ -25,8 +23,13 @@ while read line; do
     filename=$(echo $line | cut -d" " -f1-1)
     pages=$(echo $line | cut -d" " -f2-)
     echo " $id => processing $filename with pages $pages"
-    pdftk $filename cat $pages output /tmp/pdfgg/$id.pdf
+    pdftk $filename cat $pages output /tmp/pdfgg/$id.pdf &
+    spawned_process[${id}]=$!
     file_created=$(echo "$file_created /tmp/pdfgg/$id.pdf")
+done
+
+for pid in ${spawned_process[*]}; do
+    wait $pid
 done
 
 pdftk $file_created output compiled.pdf
