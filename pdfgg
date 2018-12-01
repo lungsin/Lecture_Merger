@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# PDFGG
+# Format in std input:
+# <namepdf>.pdf <pages separated by space>
+# example: 
+# Lecture1.pdf 10 12 13 20-25  
+
+id=0
+file_created=""
+
+# create /tmp/pdfgg
+
+mkdir -p /tmp/pdfgg
+
+
+while read line; do
+    # line trimming
+    line=$(echo $line | awk '{$1=$1;print}')
+
+    # continue on empty line
+    [ -z "$line" ] && continue
+
+    id=`expr $id + 1`
+    filename=$(echo $line | cut -d" " -f1-1)
+    pages=$(echo $line | cut -d" " -f2-)
+    echo " $id => processing $filename with pages $pages"
+    pdftk $filename cat $pages output /tmp/pdfgg/$id.pdf
+    file_created=$(echo "$file_created /tmp/pdfgg/$id.pdf")
+done
+
+pdftk $file_created output compiled.pdf
+pdfnup --nup 2x4 --suffix 'nup' --no-landscape --frame true --scale 0.95 --batch compiled.pdf
+rm /tmp/pdfgg/*
+
+# open result
+open_command="xdg-open"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    open_command="open"
+fi
+
+nohup $open_command compiled.pdf &>/dev/null &
+nohup $open_command compiled-nup.pdf &>/dev/null &
+
